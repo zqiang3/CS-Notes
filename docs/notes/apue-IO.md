@@ -38,6 +38,9 @@ int ungetc(int c, FILE *stream);  // 成功返回c, 失败返回EOF
 char *fgets(char *str, int size, FILE *stream);  // 成功返回str，失败返回NULL
 // 读数据，读二进制
 size_t fread(void *buf, size_t size, size_t nr, FILE *stream);  // 返回读到的数据项个数，读取失败或文件结束，返回的数值可能比nr小
+int fputc(int c, FILE *stream);  // 成功返回c, 失败返回EOF并设置errno值
+int fputs(const char *str, FILE *stream);  // 成功返回非负整数，失败返回EOF
+size_t fwrite(void *buf, size_t size, size_t nr, FILE *stream);  // 成功返回写入的数据项数，出错时返回值小于nr
 ```
 
 ### fgetc
@@ -50,3 +53,20 @@ fgetc()的返回值必须保存成int类型，把返回值保存为char类型是
 
 该函数从stream中读取size-1个字节，并把结果保存到str中，并在str最后写入空字符(\0)。当读到换行符或EOF时会结束读。换行符也会被写入str中。
 
+### fread
+
+如果读取失败或结束，fread会返回一个比nr小的数。不幸的是，必须使用ferror或feof函数，才能确定是失败还是文件结束。
+
+由于变量大小，对齐、填充、字节序这些因素的不同，由一个应用程序写入的二进制文件，另一个应用程序可能无法读取，同一个应用程序在不同机器也可能无法读取。
+
+## 对齐
+
+内存可看成一个字节数组。
+
+处理理器以特定粒度来访问内存，如2、4、8或16字节
+
+c变量的存储和访问都要求地址对齐，通常编译器会自动对齐所有的数据。
+
+访问未对齐的数据会产生不同程度的性能问题。有些处理器可以访问不对齐的数据，但会有很大的性能损失。有些处理器根本无法访问不对齐的数据，尝试这么做会导致硬件异常。处理器在强制地址对齐时，可能会丢弃低位的数据，从而导致不可预料的行为。
+
+处理结构体，手动执行内存管理，把二进制数据保存到磁盘中，以及网络通信都会涉及对齐问题。
