@@ -41,6 +41,12 @@ size_t fread(void *buf, size_t size, size_t nr, FILE *stream);  // 返回读到�
 int fputc(int c, FILE *stream);  // 成功返回c, 失败返回EOF并设置errno值
 int fputs(const char *str, FILE *stream);  // 成功返回非负整数，失败返回EOF
 size_t fwrite(void *buf, size_t size, size_t nr, FILE *stream);  // 成功返回写入的数据项数，出错时返回值小于nr
+int fseek(FILE *stream, long offset, int whence);  // 成功返回0找清空EOF，出错返回-1并设置errno
+int fsetpos(FILE *stream, fpos_t *pos);  // 成功返回0找清空EOF，出错返回-1并设置errno
+void rewind(FILE *stream);
+long ftell (FILE *stream);  // 成功返回当前位置，出错返回-1并设置errno
+int fgetpos(FILE *stream, fpos_t *pos);  // 成功返回0，失败返回-1并设置errno
+int fflush(FILE *stream);  // 成功返回0，失败返回EOF并设置errno
 ```
 
 ### fgetc
@@ -59,6 +65,12 @@ fgetc()的返回值必须保存成int类型，把返回值保存为char类型是
 
 由于变量大小，对齐、填充、字节序这些因素的不同，由一个应用程序写入的二进制文件，另一个应用程序可能无法读取，同一个应用程序在不同机器也可能无法读取。
 
+### fflush
+
+fflush将流中未写入的数据flush到内核，若stream是NULL，进程所有打开的流会被flush。
+
+理解C库的缓冲区与内核缓冲区的区别，fflush并不保证数据马上被写到物理磁盘。
+
 ## 对齐
 
 内存可看成一个字节数组。
@@ -70,3 +82,56 @@ c变量的存储和访问都要求地址对齐，通常编译器会自动对齐�
 访问未对齐的数据会产生不同程度的性能问题。有些处理器可以访问不对齐的数据，但会有很大的性能损失。有些处理器根本无法访问不对齐的数据，尝试这么做会导致硬件异常。处理器在强制地址对齐时，可能会丢弃低位的数据，从而导致不可预料的行为。
 
 处理结构体，手动执行内存管理，把二进制数据保存到磁盘中，以及网络通信都会涉及对齐问题。
+
+
+
+# Standard I/O Library
+
+## Streams 
+
+With the standard I/O library, the discussion centers around streams. When we open or create a file with the standard I/O library, we say that we have associated a **stream** with the file.
+
+ASCII字符集中一个字符用一个字节表示，国际字符集中一个字符可以用多个字节表示。
+
+stream's orientation: byte-orientation, wide-orientation. Throughtout the rest of this book, we will deal only with byte-orientation streams.
+
+## FILE Objects
+
+File object is normally a structure that contains all the information required by the standard I/Olibrary to manage the stream: 
+
+* the **file descriptor** used for the actural I/O
+* **a pointer to a buffer** for the stream
+* the **size of the buffer**
+* a **count of the number of characters** currently in the buffer
+* **error flag**
+
+Standard I/O library has already been ported to a wide variety of ther operating systems other than UNIX system. In this book, we will talk about its typical implementation on a UNIX system.
+
+## Standard Input, Standard Output, and Standard Error
+
+标准输入，标准输出，标准错误是三种预定义的流，是进程自动打开的流。这三种流使用文件指针stdin, stdout, stderr表示，在`<stdio.h>`文件中定义。
+
+这三种流分别有相应的文件描述符。
+
+stdin: STDIN_FILENO
+
+stdout: STDOUT_FILENO
+
+stderr: STDERR_FILENO
+
+## Buffering
+
+The goal of the buffering provided by the standard I/O library is to use the minimum number of read and write calls.
+
+标准IO库的缓冲也是最让人困惑的地方。
+
+有三种类型的缓冲：
+
+1. Fully buffered. 当缓冲区被填满时才会执行真正的IO操作。文件相关的操作默认采用这种方式。The buffer used is usually obtained by one of the standard I/O functions calling malloc the first time I/Ois performed on a stream.
+2. Line buffered. 当遇到换行符时才执行真正IO操作。
+3. Unbuffered. 标准IO库不进行缓冲。
+
+大多数实现默认采用以下缓冲方式：
+
+1. 标准错误是Unbuffered。不管是否遇到换行符，错误信息总是立即被显示。
+2. 指向终端设置的流是Line buffered，其他流是Fully buffered.
