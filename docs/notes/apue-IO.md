@@ -67,7 +67,7 @@ fgetc()的返回值必须保存成int类型，把返回值保存为char类型是
 
 ### fflush
 
-fflush将流中未写入的数据flush到内核，若stream是NULL，进程所有打开的流会被flush。
+This function causes any unwritten data for the stream to be passed to the kernel. If fp is NULL, this function causes all output streams to be flushed.
 
 理解C库的缓冲区与内核缓冲区的区别，fflush并不保证数据马上被写到物理磁盘。
 
@@ -135,3 +135,58 @@ The goal of the buffering provided by the standard I/O library is to use the min
 
 1. 标准错误是Unbuffered。不管是否遇到换行符，错误信息总是立即被显示。
 2. 指向终端设置的流是Line buffered，其他流是Fully buffered.
+
+```c
+#include <stdio.h>
+void setbuf(FILE *restrict fp, char *restrict buf);
+int setvbuf(FILE *restrict fp, char *restrict buf, int mode, size_t size);
+// returns 0 if OK, nonzero if error
+FILE *fopen(const char *restrict pathname, const char *restrict type);
+FILE *freopen(const char *restrict pathname, const char *restrict type, FILE *restrict fp);
+FILE *fdopen(int fieldes, const char *type);
+// All three return: file pointer if OK, NULL on error
+int fclose(FILE *fp);  // returns: 0 if OK, EOF on error
+int getc(FILE *fp);
+int fgetc(FILE *fp);
+int getchar(void);
+// All three return: next character if OK, EOF on end of file or error
+int ferror(FILE *fp);
+int feof(FILE *fp);
+// Both return: nonzero (true) if condition is true, 0 (false) otherwise
+void clearerr(FILE *fp);
+int ungetc(int c, FILE *fp);  // Returns: c if OK, EOF on error
+int putc(int c, FILE *fp);
+int fputc(int c, FILE *fp);
+int putchar(int c);
+// All three return: c if OK, EOF on error
+char *fgets(char *restrict buf, int n, FILE *restrict fp);
+char *gets(char *buf);
+// Both return: buf if OK, NULL on end of file or error
+int fputs(const char *restrict str, FILE *restrict fp);
+int puts(const char *str);
+// Both reutrn: none-negative value if OK, EOF on error
+long ftell (FILE *fp);  // Returns: current file postion indicator if OK, -1L on error
+int fseek(FILE *fp, long offset, int whence);  // Returns: 0 if OK, nonzero on error
+void rewind(FILE *fp);
+off_t ftello(FILE *fp); // Returns: current file postion indicator if OK, -1 on error
+int fseeko(FILE *fp, off_t offset, int whence);  // Returns: 0 if OK, nonzero on error
+int fgetpos(FILE *restrict fp, fpos_t *restrict pos);
+int fsetpos(FILE *fp, const fpos_t *pos);
+// Both return: 0 if OK, nonzero on error
+```
+
+### Opening a Stream
+
+when a file is opened for reading and writing(the plus sign in the type), the following restrictions apply.
+
+* Output cannot be directly followed by input without an intervening fflush, fseek, fsetpos, or rewind.
+* Input cannot be directly followed by output without an intervening, fseek, fsetpos, or rewind, or an input operation that encounters an end of file.
+
+### freopen
+
+This function is typically used to open a specified file as one of the predefined streams: standard input, standard output, or standard error.
+
+### fdopen
+
+Thie function is often used with descriptors that are returned by the functions that create pipes and network communication channels. Because these specail types of files cannot be opened with the standard I/O fopen function, we have to call the device-specific function to obtain a file descriptor, and then associate this descriptor with a standard I/O stream using fdopen.
+
