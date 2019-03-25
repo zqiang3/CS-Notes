@@ -1,5 +1,9 @@
 # 缓冲IO
 
+## 链接
+
+<http://lujun9972.github.io/blog/2015/05/15/%E6%A0%87%E5%87%86io%E5%BA%93/>
+
 ## 块
 
 块是IO的基本概念，是文件系统的最小操作单位。在内核中，所有的文件操作都是基于块来执行的。块大小一般是512、1024、2048或4096字节。缓冲IO块置IO缓冲时，把缓冲区大小设置成块的整数倍或约数，保证所有操作都是块对齐，IO性能可以得到提高。
@@ -138,6 +142,7 @@ The goal of the buffering provided by the standard I/O library is to use the min
 
 ```c
 #include <stdio.h>
+int fwide(FILE *fp, int mode);
 void setbuf(FILE *restrict fp, char *restrict buf);
 int setvbuf(FILE *restrict fp, char *restrict buf, int mode, size_t size);
 // returns 0 if OK, nonzero if error
@@ -160,7 +165,7 @@ int fputc(int c, FILE *fp);
 int putchar(int c);
 // All three return: c if OK, EOF on error
 char *fgets(char *restrict buf, int n, FILE *restrict fp);
-char *gets(char *buf);
+char *gets(char *buf);  // the 'gets' function is dangerous and should not be used
 // Both return: buf if OK, NULL on end of file or error
 int fputs(const char *restrict str, FILE *restrict fp);
 int puts(const char *str);
@@ -181,6 +186,15 @@ when a file is opened for reading and writing(the plus sign in the type), the fo
 
 * Output cannot be directly followed by input without an intervening fflush, fseek, fsetpos, or rewind.
 * Input cannot be directly followed by output without an intervening, fseek, fsetpos, or rewind, or an input operation that encounters an end of file.
+
+在有些系统中测试，发现对于普通文件（非socket的操作），似乎不遵守这个规则读写也正常。然而，为了程序的可移植性和健壮性，依然建议遵守标准的规定。
+
+man fopen中的一段话
+
+> Reads and writes may be intermixed on read/write streams in any order.  Note that ANSI C requires that a file positioning function intervene between output  and  input,  unless  an  input  operation
+> ​     encounters end-of-file.  (If this condition is not met, then a read is allowed to return the result of writes other than the most recent.)  Therefore it is good practice (and indeed sometimes neces‐
+> ​     sary under Linux) to put an fseek(3) or fgetpos(3) operation between write and read operations on such a stream.  This operation may be an apparent no-op (as in fseek(..., 0L, SEEK_CUR)  called  for
+> ​     its synchronizing side effect).
 
 ### freopen
 
