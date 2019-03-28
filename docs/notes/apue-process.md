@@ -137,9 +137,42 @@ COW（写时复制）
 
 
 
+# process control
+
+```c
+#include <unistd.h>
+
+pid_t getpid(void);  // Returns: process ID of calling process
+pid_t getppid(void);  // Returns: parent process ID of calling process
+uid_t getuid(void);  // Returns: real user ID of calling process
+uid_t geteuid(void);  // Returns: effective user ID of calling process
+gid_t getgid(void);  // Returns: real group ID of calling process
+gid_t getegid(void);  // Returns: effective group ID of calling process
+
+pid_t fork(void);  // Returns: 0 in child, process ID of child in parent, -1 on error
+```
 
 
 
+## process identifiers
+
+Although unique, process IDs are reused. Most UNIX systems implement algorithms to delay reuse however, so that newly created processes are assigned IDs different from those used by processes that terminated recently.
+
+Process ID 0 is usually the scheduler process and is often known as the swapper.  No program on disk corresponds to this process, which is part of the kernel and is known as a system process.
+
+Process ID 1 is usually the init process and is invoked by the kernel at the end of the bootstrap procedure. init usually reads the files in /etc/init.d-and is a normal user process, not a system process within the kernel, like the swapper, init becomes the parent process of any orpaned child process.
+
+## fork Function
+
+This function is called once but returns twice. 这样做的原因是一个进程可以有多个子进程，但并没有函数可以获取子进程的ID。而每个进程都可以调用getppid获取父进程的ID，因此子进程中fork调用返回0。
+
+Both the child and the parent continue executing with the instruction that follows the call to fork.
+
+The child is a copy of the parent. For example, the child gets a copy of the parent's data space, heap, and stack. The parent and the child share the text segment.
+
+Current implementations don't perform a complete copy of the parent's data, stack, and heap, since a fork is often followed by an exec. A technique called copy-on-write is used. These regions are shared by the parent and child and have their protection chaned by the kernel to read-only. If either process tries to modify these regions, the kernel then makes a copy of that piece of memory only, typically a "page" in a virtual memory system.
+
+有关线程的讨论，参见后续章节。
 
 
 
