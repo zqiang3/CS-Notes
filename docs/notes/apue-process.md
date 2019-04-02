@@ -165,6 +165,24 @@ gid_t getgid(void);  // Returns: real group ID of calling process
 gid_t getegid(void);  // Returns: effective group ID of calling process
 
 pid_t fork(void);  // Returns: 0 in child, process ID of child in parent, -1 on error
+pid_t vfork(void);  // Returns: 0 in child, process ID of child in parent, -1 on error
+
+#include <sys/wait.h>
+pid_t wait(int *statloc);
+pid_t waitpid(pid_t pid, int *statloc, int options);
+// Both return: process ID if OK, 0(see later), or -1 on error
+
+int execl(const char *pathname, const char *arg0, ... /* (char *)0 */);
+int execv(const char *pathname, char *const argv[]);
+int execle(const char *pathname, const char *arg0, ... /* (char *)0, char *const envp[] */);
+int execve(const char *pathname, char *const argv[], char *const envp[]);
+int execlp(const char *filename, const char *arg0, ... /* (char *)0 */);
+int execvp(const char *filename, char *const argv[]);
+// All six return: -1 on error, no return on success
+
+int setuid(uid_t uid);
+int setgid(gid_t gid);
+// Both return: 0 if OK, -1 on error
 ```
 
 
@@ -191,3 +209,24 @@ Current implementations don't perform a complete copy of the parent's data, stac
 
 
 
+## User IDs
+
+在Linux中，每个文件都有其所属的用户和用户组，默认情况下是文件的创建者，也可以根据chown和chgrp来修改文件所属的用户和用户组。文件的属性存放在属性结构stat中，其中有st_uid和st_gid标志着。
+
+先举个例子。假设现在系统中有两个用户liz和hlf，有一个程序文件file的所属用户为hlf。然后使用liz用户登录系统，运行file文件，则运行进程process有一个实际用户和有效用户，实际用户默认为当前登录用户，即liz。而有效用户呢？有效用户是哪个得看file文件的属性了，属性结构stat里有个st_mode文件模式字，其中有一个设置-用户-ID位，如果没有设置这个位的话，那任何执行file文件的进程的有效用户就是其实际用户；如果设置了这个位的话，则执行file文件的进程的有效用户就是该file文件所属用户了。这里，如果设置了该位，则有效用户就为hlf，否则就为实际用户liz了。
+
+这里需要说明实际用户ID和有效用户ID的作用。**实际用户是用来标识进程是谁，是谁在执行进程**，一般是登录用户；而**有效用户ID则标识这该进程的访问权限**，假设进程的实际用户为liz，而有效用户为hlf，则进程可以可以访问hlf用户可以访问的文件，即拥有与hlf一样的权限（注意不是能够访问hlf的文件）。
+
+## setuid
+
+There are rules for who can change th IDs. 
+
+1. If the process has superuser privileges, the setuid function sets the real user ID, effective user ID, and saved set-user-ID to uid.
+2. If the process does not have superuser privileges, but **uid equals either the real user ID or the saved set-user-ID**, setuid sets only the effective user ID to uid.
+3. If neither of these two condition is true, errno is set to EPERM, and -1 to returned.
+
+We can make a few statements about the three user IDs that the kernel maintains.
+
+1. Only a superuser process can change the real user ID. Normally, the real user ID is set by the login(1) program when we log in and never changes. Because login is a superuser process, it sets all three user IDs when it calls setuid.
+2. The effective user ID is set by the exec functions only if **the set-user-ID bit is set for the program file**. If the set-user-ID bit is not set, the exec funtions leave the effective user ID as its current value. We can call setuid at any time to set the effective  user ID to either the real user ID or the saved set-user-ID. Naturally, we can't set the effective user ID to any random value.
+3. The saved set-user-ID is copied from the effective user ID by exec. If the file's set-user-ID bit is set, this copy is saved after exec stores the effective user ID from the file's user ID.
