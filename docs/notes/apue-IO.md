@@ -85,7 +85,44 @@ c变量的存储和访问都要求地址对齐，通常编译器会自动对齐�
 
 访问未对齐的数据会产生不同程度的性能问题。有些处理器可以访问不对齐的数据，但会有很大的性能损失。有些处理器根本无法访问不对齐的数据，尝试这么做会导致硬件异常。处理器在强制地址对齐时，可能会丢弃低位的数据，从而导致不可预料的行为。
 
-处理结构体，手动执行内存管理，把二进制数据保存到磁盘中，以及网络通信都会涉及对齐问题。
+处理结构体，手动执行内存管理，把二进制数据保存到磁盘中，以及网络通信都会涉及对齐问题。 
+
+## stdin, stdout, stderr
+
+1. stdin等是FILE *类型，是**c中的标准输入输出流**，缓冲方式进行。
+2. 属于高级I/O，带缓冲。
+3. 头文件<stdio.h>
+4. 使用stdin等的函数主要有：fread, fwrite, fclose等**标准库调用**，基本上都以f开头。
+
+## STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO
+
+书中描述为：两个常量STDIN_FILENO和STDOUT_FILENO定义在<unistd.h>头文件中，它们指定了标准输入和标准输出的**文件描述符**。
+
+1. STDIN_FILENO等是int类型，是文件描述符，一般定义为0, 1, 2。
+2. 属于**系统API**接口库，没有buffer的I/O，**直接进行系统调用**，属于低级I/O，需要自己处理缓冲。
+3. 头文件<unistd.h>
+4. 使用STDIN_FILENO等的函数有：read, write, close等。
+5. STDIN_FILENO等用于系统层的系统调用，操作系统级提供的文件API都是以文件描述符来表示文件。STDIN_FILENO就是标准输入设备（一般是键盘）的文件描述符。
+
+```c
+#include <stdio.h>
+#include <unistd.h>
+
+#define MAX 1000
+
+int main(int argc, char **argv)
+{
+    char buf[MAX];
+
+    int n;
+    while((n = read(STDIN_FILENO, buf, MAX)) > 0)
+    {
+        write(STDOUT_FILENO, buf, n);
+    }
+
+    return 0;
+}
+```
 
 
 

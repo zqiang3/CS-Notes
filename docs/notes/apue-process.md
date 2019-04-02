@@ -183,6 +183,9 @@ int execvp(const char *filename, char *const argv[]);
 int setuid(uid_t uid);
 int setgid(gid_t gid);
 // Both return: 0 if OK, -1 on error
+
+int seteuid(uid_t uid);
+int setegid(gid_t gid);
 ```
 
 
@@ -197,13 +200,11 @@ Process ID 1 is usually the init process and is invoked by the kernel at the end
 
 ## fork Function
 
-This function is called once but returns twice. 这样做的原因是一个进程可以有多个子进程，但并没有函数可以获取子进程的ID。而每个进程都可以调用getppid获取父进程的ID，因此子进程中fork调用返回0。
+This function is called once but returns twice. Both the child and the parent continue executing with the instruction that follows the call to fork.
 
-Both the child and the parent continue executing with the instruction that follows the call to fork.
+The child is a copy of the parent. For example, the child gets a copy of the parent's data **space, heap, and stack.** The parent and the child **share the text segment**.
 
-The child is a copy of the parent. For example, the child gets a copy of the parent's data space, heap, and stack. The parent and the child share the text segment.
-
-Current implementations don't perform a complete copy of the parent's data, stack, and heap, since a fork is often followed by an exec. A technique called copy-on-write is used. These regions are shared by the parent and child and have their protection chaned by the kernel to read-only. If either process tries to modify these regions, the kernel then makes a copy of that piece of memory only, typically a "page" in a virtual memory system.
+Current implementations don't perform a complete copy of the parent's data, stack, and heap, since a fork is often followed by an exec. A technique called **copy-on-write** is used. These regions are shared by the parent and child and have their protection chaned by the kernel to read-only. If either process tries to modify these regions, the kernel then makes a copy of that piece of memory only, typically a "page" in a virtual memory system.
 
 有关线程的讨论，参见后续章节。
 
