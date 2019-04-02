@@ -53,6 +53,15 @@ int fgetpos(FILE *stream, fpos_t *pos);  // 成功返回0，失败返回-1并设
 int fflush(FILE *stream);  // 成功返回0，失败返回EOF并设置errno
 ```
 
+| 家族名  | 目的       | 可用于所有流 | 只用于stdin stdout | 内存中的字符串 |
+| ------- | ---------- | ------------ | ------------------ | -------------- |
+| getchar | 字符输入   | fgetc, getc  | getchar            |                |
+| putchar | 字符输出   | fputc, putc  | putchar            |                |
+| gets    | 文本行输入 | fgets        | gets               |                |
+| puts    | 文本行输出 | fputs        | puts               |                |
+| scanf   | 格式化输入 | fscanf       | scanf              | sscanf         |
+| printf  | 格式化输出 | fprintf      | printf             | sprintf        |
+
 ### fgetc
 
 该函数从stream中读取一个字符，并把它强制转换成unsigned int返回。
@@ -188,7 +197,7 @@ FILE *freopen(const char *restrict pathname, const char *restrict type, FILE *re
 FILE *fdopen(int fieldes, const char *type);
 // All three return: file pointer if OK, NULL on error
 int fclose(FILE *fp);  // returns: 0 if OK, EOF on error
-int getc(FILE *fp);
+int getc(FILE *fp);  // 可用宏实现
 int fgetc(FILE *fp);
 int getchar(void);
 // All three return: next character if OK, EOF on end of file or error
@@ -197,7 +206,7 @@ int feof(FILE *fp);
 // Both return: nonzero (true) if condition is true, 0 (false) otherwise
 void clearerr(FILE *fp);
 int ungetc(int c, FILE *fp);  // Returns: c if OK, EOF on error
-int putc(int c, FILE *fp);
+int putc(int c, FILE *fp);  // 可用宏实现
 int fputc(int c, FILE *fp);
 int putchar(int c);
 // All three return: c if OK, EOF on error
@@ -215,6 +224,11 @@ int fseeko(FILE *fp, off_t offset, int whence);  // Returns: 0 if OK, nonzero on
 int fgetpos(FILE *restrict fp, fpos_t *restrict pos);
 int fsetpos(FILE *fp, const fpos_t *pos);
 // Both return: 0 if OK, nonzero on error
+char *tmpnam(char *ptr);  // Returns: pointer to unique pathname
+FILE *tmpfile(void);  // Returns: file pointer if OK, NULL on error
+
+char *tempnam(const char *derectory, const char *prefix);  // Returns: pointer to unique pathname
+int mkstemp(char *template);  // Returns: file descriptor if OK, -1 on error
 ```
 
 ### Opening a Stream
