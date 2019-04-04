@@ -20,7 +20,6 @@ void on_exit(void (*func)(int, void*), void *arg);
 
 pid_t wait(int *status);
 pid_t waitpid(pid_t pid, int *status, int options);
-int waitid(idtype_t idtype, id_t id, siginfo_t *infop, int options);
 int system(const char *command);
 ```
 
@@ -48,14 +47,6 @@ int system(const char *command);
 原语表示是一个原子操作，执行期间不能被中断，是一个不可分割的基本单位。
 
 进程控制原语包括进程的创建，进程的终止，进程的阻塞和唤醒，进程的切换。
-
-## 进程体系
-
-用户和组
-
-进程组
-
-pid_t: `<sys/types.h>`
 
 ## 进程的创建
 
@@ -104,8 +95,6 @@ pid_t: `<sys/types.h>`
 6. 恢复处理机上下文。
 
 注意，进程切换与处理机模式切换是不同的，模式切换时，处理机逻辑上可能还在同一进程中运行。如果进程因中断或异常进入到核心态运行，执行完后又回到用户态刚被中断的程序运行，则操作系统只需恢复进程进入内核时所保存的CPU现场，无需改变当前进程的环境信息。但若要切换进程，当前运行进程改变了，则当前进程的环境信息也需要改变。
-
-
 
 ## 运行新进程
 
@@ -208,8 +197,6 @@ Current implementations don't perform a complete copy of the parent's data, stac
 
 有关线程的讨论，参见后续章节。
 
-
-
 ## User IDs
 
 在Linux中，每个文件都有其所属的用户和用户组，默认情况下是文件的创建者，也可以根据chown和chgrp来修改文件所属的用户和用户组。文件的属性存放在属性结构stat中，其中有st_uid和st_gid标志着。
@@ -231,3 +218,54 @@ We can make a few statements about the three user IDs that the kernel maintains.
 1. Only a superuser process can change the real user ID. Normally, the real user ID is set by the login(1) program when we log in and never changes. Because login is a superuser process, it sets all three user IDs when it calls setuid.
 2. The effective user ID is set by the exec functions only if **the set-user-ID bit is set for the program file**. If the set-user-ID bit is not set, the exec funtions leave the effective user ID as its current value. We can call setuid at any time to set the effective  user ID to either the real user ID or the saved set-user-ID. Naturally, we can't set the effective user ID to any random value.
 3. The saved set-user-ID is copied from the effective user ID by exec. If the file's set-user-ID bit is set, this copy is saved after exec stores the effective user ID from the file's user ID.
+
+# Process Relationships
+
+```c
+#include <unistd.h>
+
+pid_t getpgrp(void);  // Returns: process group ID of calling process
+pid_t getpgid(pid_t pid);  // Returns: process group ID if OK, -1 on error
+int setpgid(pid_t pid, pid_t pgid);  // Returns: 0 if OK, -1 on error
+
+pid_t setsid(void);  // Returns: process group ID if OK, -1 on error
+pid_t getsid(pid_t pid);  // Returns: session leader's process group ID if OK, -1 on error
+```
+
+
+
+## Terminal Logins
+
+init(fork)->init(exec)->getty(exec)->login
+
+## Process Groups
+
+Each process group can have a process group leader. The leader is identified by its process group ID being equal to its process ID.
+
+The process group still exists, as long as at lease one process is in the group, regardless of whether the group leader terminates. The last remaining process in the process group can either terminate or enter some other process group.
+
+A process joins an existing process group or creates a new process group by calling setpgid. (In the next section, we'll see that `setsid` also creates a new process group.)
+
+### setpgid
+
+This function sets the process group ID to pgid in the process whose process ID equals pid.
+
+1. If the two arguments are equal, the process specified by pid becomes a process group leader. 
+2. If pid is 0, the process ID of the caller is used. 
+3. Also, if pgid is 0, the process ID specified by pid is used as the process goup ID.
+
+A process can set the process goup ID of only itself or any of its children. Furthermore, it can't change the process group ID of one of its children after that child has called one of the exec functions.
+
+## Sessions
+
+A session is a collection of one or more process groups.
+
+### setsid
+
+If the calling process is not a process group leader, this function creates a new session. Three things happen.
+
+1. The process becomes the session leader of this **new session.** (A session leader is the process that creates a session.) The process is the only process in this new session.
+2. The process becomes the process group leader of **a new process group**. The new process group ID is the process ID of the calling process.
+3. The process has no controlling terminal. If the process had a controlling terminal before calling setsid, that association is broken.
+
+This function returns an error if the caller is already a process group leader.
