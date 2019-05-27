@@ -108,42 +108,6 @@ This function causes any unwritten data for the stream to be passed to the kerne
 
 # File I/O(文件IO)
 
-```c
-#include <fcntl.h>
-int open(const char *pathname, int oflag, ... /* mode_t mode */ );
-// Returns: fd id OK, -1 on error
-
-#include <unistd.h>
-int close(int fields);
-// Returns: 0 if OK, -1 on error
-off_t lseek(int fd, off_t offset, int whence);
-// whence: SEEK_SET, SEEK_CUR, SEEK_END
-// Returns: new offset if OK, -1 on error
-
-ssize_t read(int fd, void *buf, size_t nbytes);
-// Returns: bytes read if OK, 0 if EOF, -1 on error
-ssize_t write(int fd, const void *buf, size_t nbytes);
-// Returns: bytes written if OK, -1 on error
-
-// 原子操作
-ssize_t pread(int fd, void *buf, size_t nbytes, off_t offset);
-// Returns: bytes read if OK, 0 if EOF, -1 on error
-ssize_t pwrite(int fd, void *buf, size_t nbytes, off_t offset);
-// Returns: bytes written if OK, -1 on error
-
-int dup(int fd);
-int dup2(int fd, int fd2);
-// Returns: new fd if OK, -1 on error
-
-int fsync(int fd);
-int fdatasync(int fd);
-// Returns: 0 if OK, -1 on error
-void syn(void);
-
-int fcntl(int fd, int cmd, ... /* int arg */ );
-// Returns: 若成功依赖于cmd， －1 on error
-```
-
 ## 文件描述符
 
 内核用文件(fd)描述符标识**进程正在访问的文件**，文件描述符通常是一个非负整数。fd是动态分配的，优先分配未使用的最小值。
@@ -289,19 +253,6 @@ fsync对fd的单一文件起作用，并且等待写磁盘操作结束，然后�
 fdatasync类似于fsync，但只影响文件的数据部分，而fsync还会同步更新文件的属性。
 
 # Files and Directories
-
-```c
-#include <unistd.h>
-#include <sys/stat.h>
-int stat(const char *restrict pathname, struct stat *restrict buf);
-int fstat(int filedes, struct stat *buf);
-int lstat(const char *restrict pathname, struct stat *restrict buf);
-// All three return: 0 if OK, -1 on error
-int access(const char *pathname, int mode);  // Returns: 0 if OK, -1 on error
-mode_t umask(mode_t cmask);  // Returns: previous file mode creation mask
-int chmod(const char *pathname, mode_t mode);
-int fchmod(int filedes, mode_t mode);  // Both return: 0 if OK, -1 on error
-```
 
 ## stat structure
 
