@@ -8,11 +8,23 @@
 
 块是IO的基本概念，是文件系统的最小操作单位。在内核中，所有的文件操作都是基于块来执行的。块大小一般是512、1024、2048或4096字节。缓冲IO块置IO缓冲时，把缓冲区大小设置成块的整数倍或约数，保证所有操作都是块对齐，IO性能可以得到提高。
 
+## 对齐
+
+内存可看成一个字节数组。
+
+处理理器以特定粒度来访问内存，如2、4、8或16字节
+
+c变量的存储和访问都要求地址对齐，通常编译器会自动对齐所有的数据。
+
+访问未对齐的数据会产生不同程度的性能问题。有些处理器可以访问不对齐的数据，但会有很大的性能损失。有些处理器根本无法访问不对齐的数据，尝试这么做会导致硬件异常。处理器在强制地址对齐时，可能会丢弃低位的数据，从而导致不可预料的行为。
+
+处理结构体，手动执行内存管理，把二进制数据保存到磁盘中，以及网络通信都会涉及对齐问题。 
+
 ### 用户缓冲IO
 
 用户可以在自己的程序中实现缓冲，实际上很多关键应用就是自己实现了用户缓冲。
 
-用户缓冲IO是在用户空间而不是内核中完成的，可以在应用程序中设置，也可以调用标准IO库。
+用户缓冲IO是在**用户空间**而不是内核中完成的，可以在应用程序中设置，也可以调用标准IO库。
 
 为提高性能，内核通过延迟写、合并相邻的IO请求以及预读等操作来缓冲数据。用户缓冲IO也是为了提升性能。
 
@@ -84,25 +96,6 @@ This function causes any unwritten data for the stream to be passed to the kerne
 
 理解C库的缓冲区与内核缓冲区的区别，fflush并不保证数据马上被写到物理磁盘。
 
-## 对齐
-
-内存可看成一个字节数组。
-
-处理理器以特定粒度来访问内存，如2、4、8或16字节
-
-c变量的存储和访问都要求地址对齐，通常编译器会自动对齐所有的数据。
-
-访问未对齐的数据会产生不同程度的性能问题。有些处理器可以访问不对齐的数据，但会有很大的性能损失。有些处理器根本无法访问不对齐的数据，尝试这么做会导致硬件异常。处理器在强制地址对齐时，可能会丢弃低位的数据，从而导致不可预料的行为。
-
-处理结构体，手动执行内存管理，把二进制数据保存到磁盘中，以及网络通信都会涉及对齐问题。 
-
-## stdin, stdout, stderr
-
-1. stdin等是FILE *类型，是**c中的标准输入输出流**，缓冲方式进行。
-2. 属于高级I/O，带缓冲。
-3. 头文件<stdio.h>
-4. 使用stdin等的函数主要有：fread, fwrite, fclose等**标准库调用**，基本上都以f开头。
-
 ## STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO
 
 书中描述为：两个常量STDIN_FILENO和STDOUT_FILENO定义在<unistd.h>头文件中，它们指定了标准输入和标准输出的**文件描述符**。
@@ -112,26 +105,6 @@ c变量的存储和访问都要求地址对齐，通常编译器会自动对齐�
 3. 头文件<unistd.h>
 4. 使用STDIN_FILENO等的函数有：read, write, close等。
 5. STDIN_FILENO等用于系统层的系统调用，操作系统级提供的文件API都是以文件描述符来表示文件。STDIN_FILENO就是标准输入设备（一般是键盘）的文件描述符。
-
-```c
-#include <stdio.h>
-#include <unistd.h>
-
-#define MAX 1000
-
-int main(int argc, char **argv)
-{
-    char buf[MAX];
-
-    int n;
-    while((n = read(STDIN_FILENO, buf, MAX)) > 0)
-    {
-        write(STDOUT_FILENO, buf, n);
-    }
-
-    return 0;
-}
-```
 
 # File I/O(文件IO)
 
@@ -380,7 +353,7 @@ from <sys/stat.h>
 | S_IWOTH      | other-write   |
 | S_IXOTH      | other-execute |
 
-# dard I/O Library（标准IO库）
+# standard I/O Library（标准IO库）
 
 ```c
 #include <stdio.h>
@@ -429,8 +402,6 @@ int mkstemp(char *template);  // Returns: file descriptor if OK, -1 on error
 
 
 
-
-
 ## Streams 
 
 With the standard I/O library, the discussion centers around streams. When we open or create a file with the standard I/O library, we say that we have associated a **stream** with the file.
@@ -454,6 +425,8 @@ Standard I/O library has already been ported to a wide variety of ther operating
 ## Standard Input, Standard Output, and Standard Error
 
 标准输入，标准输出，标准错误是三种预定义的流，是进程自动打开的流。这三种流使用文件指针stdin, stdout, stderr表示，在`<stdio.h>`文件中定义。
+
+stdin, stdout, stderr属于高级IO,带缓冲
 
 这三种流分别有相应的文件描述符。
 

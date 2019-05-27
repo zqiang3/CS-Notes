@@ -1,26 +1,58 @@
-# 进程
+# process control
 
 ```c
+#include <unistd.h>
+
+pid_t getpid(void);  // Returns: process ID of calling process
+pid_t getppid(void);  // Returns: parent process ID of calling process
+uid_t getuid(void);  // Returns: real user ID of calling process
+uid_t geteuid(void);  // Returns: effective user ID of calling process
+gid_t getgid(void);  // Returns: real group ID of calling process
+gid_t getegid(void);  // Returns: effective group ID of calling process
+
+pid_t fork(void);  // Returns: 0 in child, process ID of child in parent, -1 on error
+pid_t vfork(void);  // Returns: 0 in child, process ID of child in parent, -1 on error
+
+#include <sys/wait.h>
+pid_t wait(int *statloc);
+pid_t waitpid(pid_t pid, int *statloc, int options);
+// Both return: process ID if OK, 0(see later), or -1 on error
+
+int execl(const char *pathname, const char *arg0, ... /* (char *)0 */);
+int execv(const char *pathname, char *const argv[]);
+int execle(const char *pathname, const char *arg0, ... /* (char *)0, char *const envp[] */);
+int execve(const char *pathname, char *const argv[], char *const envp[]);
+int execlp(const char *filename, const char *arg0, ... /* (char *)0 */);
+int execvp(const char *filename, char *const argv[]);
+// All six return: -1 on error, no return on success
+
+int setuid(uid_t uid);
+int setgid(gid_t gid);
+// Both return: 0 if OK, -1 on error
+
+int seteuid(uid_t uid);
+int setegid(gid_t gid);
+
+pid_t getpgrp(void);  // Returns: process group ID of calling process
+pid_t getpgid(pid_t pid);  // Returns: process group ID if OK, -1 on error
+int setpgid(pid_t pid, pid_t pgid);  // Returns: 0 if OK, -1 on error
+
+pid_t setsid(void);  // Returns: process group ID if OK, -1 on error
+pid_t getsid(pid_t pid);  // Returns: session leader's process group ID if OK, -1 on error
+
+
 #include <sys/types.h>
 #include <unistd.h>
 pid_t getpid(void);
 pid_t getppid(void);
 // 两个系统调用都不会返回错误
-int execl(const char *path, const char *arg, ...);
-int execlp(const char *file, const char *arg, ...);
-int execle(const char *path, const char *arg, ..., char * const envp[]);
-int execv(const char *path, char *const argv[]);
-int execvp(const char *file, char *const argv[]);
-int execve(const char *filename, char *const argv[], char *const envp[]);
 
-pid_t fork(void);
+
 void exit(int status);
 int atexit(void (*func)(void));
 void on_exit(void (*func)(int, void*), void *arg);
 
-pid_t wait(int *status);
-pid_t waitpid(pid_t pid, int *status, int options);
-int system(const char *command);
+
 ```
 
 
@@ -138,46 +170,90 @@ fork(2)函数刚刚创建子进程的时候父子进程的数据指向同一块�
 
 5. 未决信号和文件锁不继承
 
-
 父子进程的运行顺序是不确定的，由进程调度器决定。vfork(2)会保证子进程先运行。进程调度器不是一个工具，而是内核中的一块代码。
 
-# process control
+## wait
+
+**NAME**
+
+wait, waitpid, waitid - wait for process to change state
 
 ```c
-#include <unistd.h>
-
-pid_t getpid(void);  // Returns: process ID of calling process
-pid_t getppid(void);  // Returns: parent process ID of calling process
-uid_t getuid(void);  // Returns: real user ID of calling process
-uid_t geteuid(void);  // Returns: effective user ID of calling process
-gid_t getgid(void);  // Returns: real group ID of calling process
-gid_t getegid(void);  // Returns: effective group ID of calling process
-
-pid_t fork(void);  // Returns: 0 in child, process ID of child in parent, -1 on error
-pid_t vfork(void);  // Returns: 0 in child, process ID of child in parent, -1 on error
-
+#include <sys/types.h>
 #include <sys/wait.h>
-pid_t wait(int *statloc);
-pid_t waitpid(pid_t pid, int *statloc, int options);
-// Both return: process ID if OK, 0(see later), or -1 on error
-
-int execl(const char *pathname, const char *arg0, ... /* (char *)0 */);
-int execv(const char *pathname, char *const argv[]);
-int execle(const char *pathname, const char *arg0, ... /* (char *)0, char *const envp[] */);
-int execve(const char *pathname, char *const argv[], char *const envp[]);
-int execlp(const char *filename, const char *arg0, ... /* (char *)0 */);
-int execvp(const char *filename, char *const argv[]);
-// All six return: -1 on error, no return on success
-
-int setuid(uid_t uid);
-int setgid(gid_t gid);
-// Both return: 0 if OK, -1 on error
-
-int seteuid(uid_t uid);
-int setegid(gid_t gid);
+pid_t wait(int *wstatus);
+pid_t waitpid(pid_t pid, int *wstatus, int options);
+int waitid(idtype_t idtype, id_t id, siginfo_t *infop, int options);
 ```
 
+```
+ All of these system calls are used to wait for state changes in a
+       child of the calling process, and obtain information about the child
+       whose state has changed.  A state change is considered to be: the
+       child terminated; the child was stopped by a signal; or the child was
+       resumed by a signal.  In the case of a terminated child, performing a
+       wait allows the system to release the resources associated with the
+       child; if a wait is not performed, then the terminated child remains
+       in a "zombie" state (see NOTES below).
 
+       If a child has already changed state, then these calls return
+       immediately.  Otherwise, they block until either a child changes
+       state or a signal handler interrupts the call (assuming that system
+       calls are not automatically restarted using the SA_RESTART flag of
+       sigaction(2)).  In the remainder of this page, a child whose state
+       has changed and which has not yet been waited upon by one of these
+       system calls is termed waitable.
+```
+
+**wait() and waitpid()**
+
+```
+
+       The wait() system call suspends execution of the calling thread until
+       one of its children terminates.  The call wait(&wstatus) is
+       equivalent to:
+
+           waitpid(-1, &wstatus, 0);
+
+       The waitpid() system call suspends execution of the calling thread
+       until a child specified by pid argument has changed state.  By
+       default, waitpid() waits only for terminated children, but this
+       behavior is modifiable via the options argument, as described below.
+
+       The value of pid can be:
+
+       < -1   meaning wait for any child process whose process group ID is
+              equal to the absolute value of pid.
+
+       -1     meaning wait for any child process.
+
+       0      meaning wait for any child process whose process group ID is
+              equal to that of the calling process.
+
+       > 0    meaning wait for the child whose process ID is equal to the
+              value of pid.
+```
+
+**RETURN VALUE**
+
+```
+wait(): on success, returns the process ID of the terminated child;
+       on error, -1 is returned.
+
+       waitpid(): on success, returns the process ID of the child whose
+       state has changed; if WNOHANG was specified and one or more
+       child(ren) specified by pid exist, but have not yet changed state,
+       then 0 is returned.  On error, -1 is returned.
+
+       waitid(): returns 0 on success or if WNOHANG was specified and no
+       child(ren) specified by id has yet changed state; on error, -1 is
+       returned.
+
+       Each of these calls sets errno to an appropriate value in the case of
+       an error.
+```
+
+# process control
 
 ## process identifiers
 
