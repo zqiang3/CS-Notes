@@ -22,5 +22,42 @@ void pthread_cleanup_pop(int execute);
 
 int pthread_detach(pthread_t tid);
 // Returns: 0 if OK, error number on failure
+
+int pthread_mutex_init(pthread_mutex_t *restrict mutex, const pthread_mutexattr_t *restrict attr);
+int pthread_mutex_destroy(pthread_mutex_t *mutex);
+// Both return: 0 if OK, error number on failure
+
+int pthread_mutex_lock(pthread_mutex_t *mutex);
+int pthread_mutex_trylock(pthread_mutex_t *mutex);
+int pthread_mutex_unlock(pthread_mutex_t *mutex);
+// Both return: 0 if OK, error number on failure
+
+int pthread_rwlock_init(pthread_rwlock_t *restrict rwlock, const pthread_rwlockattr_t *restrict attr);
+int pthread_rwlock_destroy(pthread_rwlock_t *rwlock);
+// Both return: 0 if OK, error number on failure
+
+int pthread_rwlock_rdlock(pthread_rwlock_t *rwlock);
+int pthread_rwlock_wrlock(pthread_rwlock_t *rwlock);
+int pthread_rwlock_unlock(pthread_rwlock_t *rwlock);
+// Both return: 0 if OK, error number on failure
+
+int pthread_rwlock_tryrdlock(pthread_rwlock_t *rwlock);
+int pthread_rwlock_trywrlock(pthread_rwlock_t *rwlock);
+// Both return: 0 if OK, error number on failure
+
+int pthread_attr_init(pthread_attr_t *attr);
+int pthread_attr_destroy(pthread_attr_t *attr);
+// Both return: 0 if OK, error number on failure
+
+int pthread_attr_getdetachstate(const pthread_attr_t *restrict attr, int detachstate);
+// Both return: 0 if OK, error number on failure
+
+int pthread_attr_getstack(const pthread_attr_t *restrict attr, void **restrict stackaddr, size_t *restrict stacksize);
+int pthread_attr_setstack(const pthread_attr_t *attr, void *stackaddr, size_t *stacksize);
+// Both return: 0 if OK, error number on failure
+
+int pthread_attr_getguardsize(const prhtread_attr_t *restrict attr, size_t *restrict guardsize);
+int pthread_attr_setguardsize(pthread_attr_t *attr, size_t guardsize);
+// Both return: 0 if OK, error number on failure
 ```
 
